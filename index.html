@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#10160c">
+<title>もりのコックさん</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="tag">もりのコックさん</span>
+    <h1>解答入力ページ</h1>
+  </header>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="notice" id="notice-card"></div>
+
+  <main id="puzzle-area"></main>
+</div>
+
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button type="button" class="lightbox-close" id="lightbox-close" aria-label="閉じる">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  const area = document.getElementById("puzzle-area");
+  const progressEl = document.getElementById("progress");
+  const noticeEl = document.getElementById("notice-card");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightbox-img");
+  const lightboxClose = document.getElementById("lightbox-close");
+
+  function openLightbox(src, alt) {
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    lightbox.classList.add("open");
+    lightbox.setAttribute("aria-hidden", "false");
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    lightbox.setAttribute("aria-hidden", "true");
+  }
+
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLightbox();
+  });
+
+  // 注意事項カードを1問目の直前に表示
+  function renderNotice() {
+    if (!Array.isArray(NOTICES) || NOTICES.length === 0) {
+      noticeEl.style.display = "none";
+      return;
+    }
+    noticeEl.innerHTML = `
+      <h2>はじめる前に</h2>
+      <ul>${NOTICES.map((n) => `<li>${n}</li>`).join("")}</ul>
+    `;
+  }
+
+  // 全角/半角・大文字小文字・前後や途中の空白の違いを吸収して比較する
+  function normalize(str) {
+    return String(str)
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/\s+/g, "");
+  }
+
+  function isCorrect(puzzle, input) {
+    const answers = Array.isArray(puzzle.answer) ? puzzle.answer : [puzzle.answer];
+    const normInput = normalize(input);
+    return answers.some((a) => normalize(a) === normInput);
+  }
+
+  // このページを開いている間だけ保持する進捗（リロードすると最初から）
+  let solved = [];
+
+  function renderProgress() {
+    progressEl.innerHTML = "";
+    PUZZLES.forEach((p, i) => {
+      const dot = document.createElement("div");
+      const isDone = solved.includes(p.id);
+      const isCurrent = !isDone && i === solved.length;
+      dot.className = "dot" + (isDone ? " done" : "") + (isCurrent ? " current" : "");
+      dot.textContent = isDone ? "✓" : String(i + 1);
+      progressEl.appendChild(dot);
+    });
+  }
+
+  function buildCard(puzzle, index) {
+    const card = document.createElement("section");
+    card.className = "case";
+    card.id = "case-" + puzzle.id;
+
+    // image は文字列でも配列でもOK（複数画像対応）
+    const images = Array.isArray(puzzle.image) ? puzzle.image : [puzzle.image];
+    const polaroidsHtml = images.map((src) => `
+        <div class="polaroid">
+          <img src="${src}" alt="正解のごほうび画像" tabindex="0" role="button" aria-label="タップで画像を拡大表示">
+        </div>`).join("");
+
+    card.innerHTML = `
+      <div class="label">
+        <span class="stamp">せいかい！</span>
+      </div>
+      <p class="question">${puzzle.question}</p>
+      <form autocomplete="off">
+        <input type="text" name="answer" placeholder="こたえを入力" aria-label="解答入力欄">
+        <button type="submit">こたえる</button>
+      </form>
+      <p class="feedback"></p>
+      <div class="reveal">
+        ${polaroidsHtml}
+      </div>
+    `;
+
+    const form = card.querySelector("form");
+    const input = card.querySelector("input");
+    const feedback = card.querySelector(".feedback");
+    const reveal = card.querySelector(".reveal");
+    const revealImgs = card.querySelectorAll(".reveal img");
+
+    // 画像が実際に表示された高さぶん、隠れずに開くようにする
+    function expandReveal() {
+      reveal.style.maxHeight = reveal.scrollHeight + "px";
+    }
+    // トランジション完了後は高さ制限自体を外し、画面回転などでも切れないようにする
+    reveal.addEventListener("transitionend", (e) => {
+      if (e.propertyName === "max-height" && card.classList.contains("solved")) {
+        reveal.style.maxHeight = "none";
+      }
+    });
+
+    // 画像は何枚あってもそれぞれに「読み込み時」「タップで拡大」を仕込む
+    revealImgs.forEach((img) => {
+      img.addEventListener("load", () => {
+        if (card.classList.contains("solved")) expandReveal();
+      });
+      img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      img.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLightbox(img.src, img.alt);
+        }
+      });
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (card.classList.contains("solved")) return;
+
+      if (isCorrect(puzzle, input.value)) {
+        feedback.textContent = "せいかい！";
+        feedback.className = "feedback correct";
+        card.classList.remove("shake");
+        card.classList.add("solved");
+        // 画像が全部読み込み済みならすぐ、まだなら load 時に高さを確定する
+        if ([...revealImgs].every((img) => img.complete && img.naturalWidth > 0)) {
+          expandReveal();
+        }
+
+        if (!solved.includes(puzzle.id)) {
+          solved.push(puzzle.id);
+        }
+        renderProgress();
+
+        // 次の問題を表示
+        const next = PUZZLES[index + 1];
+        setTimeout(() => {
+          if (next) {
+            const nextCard = buildCard(next, index + 1);
+            area.appendChild(nextCard);
+            nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            area.appendChild(buildFinale());
+          }
+        }, 350);
+      } else {
+        feedback.textContent = "ちがうかも…もう一度たしかめてみて";
+        feedback.className = "feedback wrong";
+        card.classList.remove("shake");
+        void card.offsetWidth; // reflowでアニメーションを再トリガー
+        card.classList.add("shake");
+      }
+    });
+
+    return card;
+  }
+
+  function buildFinale() {
+    const div = document.createElement("div");
+    div.className = "finale";
+    div.innerHTML = `
+      <span class="tag">🌲 おしまい 🌲</span>
+      <h2>すべてのなぞを解き明かしました</h2>
+      <p>森の小さな冒険はここまで。見つけたひとコマを見返してみましょう。</p>
+    `;
+    return div;
+  }
+
+  function init() {
+    area.innerHTML = "";
+    renderNotice();
+    renderProgress();
+
+    if (PUZZLES.length > 0) {
+      area.appendChild(buildCard(PUZZLES[0], 0));
+    } else {
+      area.appendChild(buildFinale());
+    }
+  }
+
+  init();
+
+  // ---------- 合言葉ゲート（このページに合言葉フォームがある場合のみ動作） ----------
+  const passForm = document.getElementById("pass-form");
+  const passInput = document.getElementById("pass-input");
+  const passFeedback = document.getElementById("pass-feedback");
+
+  if (passForm) {
+    passForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (normalize(passInput.value) === normalize(PASSPHRASE)) {
+        passFeedback.textContent = "せいかい！";
+        passFeedback.className = "feedback correct";
+        setTimeout(() => {
+          window.location.href = "hint/";
+        }, 400);
+      } else {
+        passFeedback.textContent = "合言葉がちがうみたい…";
+        passFeedback.className = "feedback wrong";
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

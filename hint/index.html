@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#10160c">
+<title>ヒントの魔法書</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="tag">🌲 森のふくろうの魔法書 🌲</span>
+    <h1>ヒントのページ</h1>
+    <p>気になる「なぞ」をタップして開いてね</p>
+  </header>
+
+  <main id="hint-area"></main>
+
+  <div class="nav-link">
+    <a href="../index.html">← こたえのページへもどる</a>
+  </div>
+</div>
+
+<script src="../data.js"></script>
+<script>
+(function () {
+  const area = document.getElementById("hint-area");
+
+  PUZZLES.forEach((puzzle, index) => {
+    const acc = document.createElement("section");
+    acc.className = "accordion";
+
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "acc-head";
+    head.innerHTML = `
+      <span><span class="num">${puzzle.label || "だい" + (index + 1) + "のなぞ"}</span></span>
+      <span class="chev">▾</span>
+    `;
+
+    const body = document.createElement("div");
+    body.className = "acc-body";
+
+    const bodyInner = document.createElement("div");
+    bodyInner.className = "acc-body-inner";
+
+    const qtext = document.createElement("p");
+    qtext.className = "qtext";
+    qtext.textContent = puzzle.question;
+    bodyInner.appendChild(qtext);
+
+    (puzzle.hints || []).forEach((hintText, hIndex) => {
+      const row = document.createElement("div");
+      row.className = "hint-row";
+
+      const hnum = document.createElement("div");
+      hnum.className = "hnum";
+      hnum.textContent = "ヒント" + (hIndex + 1);
+
+      const redact = document.createElement("div");
+      redact.className = "redact";
+      redact.textContent = hintText;
+
+      row.appendChild(hnum);
+      row.appendChild(redact);
+      bodyInner.appendChild(row);
+    });
+
+    body.appendChild(bodyInner);
+
+    head.addEventListener("click", () => {
+      acc.classList.toggle("open");
+    });
+
+    acc.appendChild(head);
+    acc.appendChild(body);
+    area.appendChild(acc);
+  });
+})();
+</script>
+</body>
+</html>
