@@ -91,9 +91,6 @@
     PUZZLES.forEach((p, i) => {
       const dot = document.createElement("div");
       const isDone = solved.includes(p.id);
-      const isCurrent = !isDone && i === solved.length;
-      dot.className = "dot" + (isDone ? " done" : "") + (isCurrent ? " current" : "");
-      dot.textContent = isDone ? "✓" : String(i + 1);
       progressEl.appendChild(dot);
     });
   }

@@ -97,7 +97,7 @@ const PUZZLES = [
     label: "",
     question: "答えを入れてね！",
     answer: "なかみ",
-    image: "images/スライド9.JPG",
+    image: "images/スライド8.JPG",
     hints: [
       "料理をするときに使う道具を思い浮かべて。",
       "「パン」の前に何かカタカナがつくよ。",
