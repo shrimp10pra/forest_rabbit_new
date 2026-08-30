@@ -37,7 +37,7 @@
 
     const p = document.createElement("p");
     p.className = "redact";
-    p.textContent = hints[from];
+    p.innerHTML = hints[from];
     wrap.appendChild(p);
 
     const rest = buildHintChain(hints, from + 1);

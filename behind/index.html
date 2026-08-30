@@ -11,36 +11,84 @@
 
 <div class="wrap">
   <header class="masthead">
-    <h1>裏話</h1>
-    <p>これは「もりのうさぎさん」ならびに「思案するシアン」の裏話です</p>
-    <p>暇で暇で仕方がないときに読んでください</p>
-    <p>なお、ネタバレ注意です</p>
+    <span class="tag">うらばなし</span>
+    <h1>うらばなし</h1>
+    <p>このページは「思案するシアン」および「もりのパティシエ」のうらばなしや誕生秘話を話すページです</p>
+    <p>暇で暇で仕方ない時に読んでください。</p>
   </header>
 
-  <div class="accordion" id="acc-2">
-    <button class="accordion-toggle" onclick="toggleAccordion('acc-2')">
-      <span>供述調書メモ</span>
-      <span class="accordion-icon">▼</span>
-    </button>
-    <div class="accordion-body">
-        1月18日午前10時23分、■■県警察署取調室において、次の通り供述した。<br><br>
+  <main id="hint-area"></main>
 
-        相尾：これからお話を伺わせていただきます。■■県警捜査二課の相尾です。お名前は三上剛(みかみごう)さんでよろしいでしょうか。<br>
-        三上：あぁ。<br>
-        相尾：では事件について伺いたいと思います。あの日は何が起こったんですか？<br>
-        三上：もともと取引の予定が入ってたから、アニキと一緒にそれに出ようとしてた。<br>
-        相尾：取引、ですか？<br>
-        三上：そ。「新浜の方にとっておきのビルがありますよ！」って言ってきた奴らがいてさ。<br>
-        相尾：その日はその方と一緒にビルに向かっていたと聞いていますが。<br>
-        三上：合ってるよ。アニキにも聞きゃわかる。<br>
-        相尾：そうですか。騙されたと分かったタイミングで通報はなされなかったんですか？<br>
-        三上：俺たちみたいなヤツが通報するわけないだろ。まぁ、もし警察に捕まってなかったら、アイツら今頃魚の餌になってただろうなぁ。<br>
-        相尾：なるほど。ありがとうございます。一旦今日の聞き込みは以上とさせていただきます。<br>
-        三上：あ？もう終わり？<br>
-        相尾：こちらで確認したいことは聞けましたので。また何かあればご連絡させていただきます。<br>
-        三上：そーですか。まぁ呼ばれない限りこねーよ。こんなとこ。<br>
-    </div>
+  <div class="nav-link">
+    <a href="../index.html">← こたえのページへもどる</a>
   </div>
-  
+</div>
+
+<script src="behind-data.js"></script>
+<script>
+(function () {
+  const area = document.getElementById("hint-area");
+
+  // hints[from] 以降を、1段ずつネストしたアコーディオンとして組み立てる
+  function buildHintChain(hints, from) {
+    if (from >= hints.length) return null;
+
+    const wrap = document.createElement("div");
+    wrap.className = "acc-body-inner";
+
+    const p = document.createElement("p");
+    p.className = "redact";
+    p.innerHTML = hints[from];
+    wrap.appendChild(p);
+
+    const rest = buildHintChain(hints, from + 1);
+    if (rest) {
+      const nested = document.createElement("section");
+      nested.className = "accordion nested";
+
+      const nestedHead = document.createElement("button");
+      nestedHead.type = "button";
+      nestedHead.className = "acc-head";
+      nestedHead.innerHTML = `<span>さらにヒントを見る</span><span class="chev">▾</span>`;
+      nestedHead.addEventListener("click", () => {
+        nested.classList.toggle("open");
+      });
+
+      const nestedBody = document.createElement("div");
+      nestedBody.className = "acc-body";
+      nestedBody.appendChild(rest);
+
+      nested.appendChild(nestedHead);
+      nested.appendChild(nestedBody);
+      wrap.appendChild(nested);
+    }
+
+    return wrap;
+  }
+
+  HINTS.forEach((item) => {
+    const acc = document.createElement("section");
+    acc.className = "accordion";
+
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "acc-head";
+    head.innerHTML = `<span>${item.title}</span><span class="chev">▾</span>`;
+    head.addEventListener("click", () => {
+      acc.classList.toggle("open");
+    });
+
+    const body = document.createElement("div");
+    body.className = "acc-body";
+
+    const chain = buildHintChain(item.hints || [], 0);
+    if (chain) body.appendChild(chain);
+
+    acc.appendChild(head);
+    acc.appendChild(body);
+    area.appendChild(acc);
+  });
+})();
+</script>
 </body>
 </html>
