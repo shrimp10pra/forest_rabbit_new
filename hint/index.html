@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#10160c">
-<title>ヒントの魔法書</title>
+<title>ヒントページ</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
 
 <div class="wrap">
   <header class="masthead">
-    <span class="tag">🌲 森のふくろうの魔法書 🌲</span>
+    <span class="tag">🌲 ヒントページ 🌲</span>
     <h1>ヒントのページ</h1>
-    <p>気になる「なぞ」をタップして開いてね</p>
+    <p>みんなでがんばってヒントを作りました！わからなくなったら読んでください！</p>
   </header>
 
   <main id="hint-area"></main>
@@ -23,56 +23,65 @@
   </div>
 </div>
 
-<script src="../data.js"></script>
+<script src="hints-data.js"></script>
 <script>
 (function () {
   const area = document.getElementById("hint-area");
 
-  PUZZLES.forEach((puzzle, index) => {
+  // hints[from] 以降を、1段ずつネストしたアコーディオンとして組み立てる
+  function buildHintChain(hints, from) {
+    if (from >= hints.length) return null;
+
+    const wrap = document.createElement("div");
+    wrap.className = "acc-body-inner";
+
+    const p = document.createElement("p");
+    p.className = "redact";
+    p.textContent = hints[from];
+    wrap.appendChild(p);
+
+    const rest = buildHintChain(hints, from + 1);
+    if (rest) {
+      const nested = document.createElement("section");
+      nested.className = "accordion nested";
+
+      const nestedHead = document.createElement("button");
+      nestedHead.type = "button";
+      nestedHead.className = "acc-head";
+      nestedHead.innerHTML = `<span>さらにヒントを見る</span><span class="chev">▾</span>`;
+      nestedHead.addEventListener("click", () => {
+        nested.classList.toggle("open");
+      });
+
+      const nestedBody = document.createElement("div");
+      nestedBody.className = "acc-body";
+      nestedBody.appendChild(rest);
+
+      nested.appendChild(nestedHead);
+      nested.appendChild(nestedBody);
+      wrap.appendChild(nested);
+    }
+
+    return wrap;
+  }
+
+  HINTS.forEach((item) => {
     const acc = document.createElement("section");
     acc.className = "accordion";
 
     const head = document.createElement("button");
     head.type = "button";
     head.className = "acc-head";
-    head.innerHTML = `
-      <span><span class="num">${puzzle.label || "だい" + (index + 1) + "のなぞ"}</span></span>
-      <span class="chev">▾</span>
-    `;
+    head.innerHTML = `<span>${item.title}</span><span class="chev">▾</span>`;
+    head.addEventListener("click", () => {
+      acc.classList.toggle("open");
+    });
 
     const body = document.createElement("div");
     body.className = "acc-body";
 
-    const bodyInner = document.createElement("div");
-    bodyInner.className = "acc-body-inner";
-
-    const qtext = document.createElement("p");
-    qtext.className = "qtext";
-    qtext.textContent = puzzle.question;
-    bodyInner.appendChild(qtext);
-
-    (puzzle.hints || []).forEach((hintText, hIndex) => {
-      const row = document.createElement("div");
-      row.className = "hint-row";
-
-      const hnum = document.createElement("div");
-      hnum.className = "hnum";
-      hnum.textContent = "ヒント" + (hIndex + 1);
-
-      const redact = document.createElement("div");
-      redact.className = "redact";
-      redact.textContent = hintText;
-
-      row.appendChild(hnum);
-      row.appendChild(redact);
-      bodyInner.appendChild(row);
-    });
-
-    body.appendChild(bodyInner);
-
-    head.addEventListener("click", () => {
-      acc.classList.toggle("open");
-    });
+    const chain = buildHintChain(item.hints || [], 0);
+    if (chain) body.appendChild(chain);
 
     acc.appendChild(head);
     acc.appendChild(body);
